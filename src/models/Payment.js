@@ -1,0 +1,103 @@
+import mongoose from 'mongoose';
+
+const paymentSchema = new mongoose.Schema(
+  {
+    // Razorpay IDs
+    razorpayOrderId: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    razorpayPaymentId: {
+      type: String,
+      sparse: true, // Can be null if payment not successful
+    },
+    razorpaySignature: {
+      type: String,
+      sparse: true,
+    },
+
+    // Payment Details
+    amount: {
+      type: Number,
+      required: true, // in INR
+    },
+    currency: {
+      type: String,
+      default: 'INR',
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'completed', 'failed', 'refunded'],
+      default: 'pending',
+    },
+
+    // Payment Type & Reference
+    paymentType: {
+      type: String,
+      enum: ['donation', 'pooja', 'darshan'],
+      required: true,
+    },
+    referenceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      // Can reference Donation, PoojaBooking, or DarshanBooking
+    },
+
+    // Customer Details
+    customerName: {
+      type: String,
+      required: true,
+    },
+    customerEmail: {
+      type: String,
+      required: true,
+    },
+    customerPhone: {
+      type: String,
+      required: true,
+    },
+
+    // Refund Details
+    refundId: {
+      type: String,
+      sparse: true,
+    },
+    refundAmount: {
+      type: Number,
+      sparse: true,
+    },
+    refundStatus: {
+      type: String,
+      enum: ['none', 'partial', 'full'],
+      default: 'none',
+    },
+
+    // Additional Info
+    notes: {
+      type: String,
+      default: '',
+    },
+    metadata: {
+      type: Object,
+      default: {},
+    },
+
+    // Timestamps
+    paidAt: {
+      type: Date,
+      sparse: true,
+    },
+  },
+  { timestamps: true }
+);
+
+// Index for quick lookups
+paymentSchema.index({ customerPhone: 1 });
+paymentSchema.index({ status: 1 });
+paymentSchema.index({ paymentType: 1 });
+paymentSchema.index({ createdAt: -1 });
+
+const Payment = mongoose.models.Payment || mongoose.model('Payment', paymentSchema);
+
+export default Payment;
