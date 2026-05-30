@@ -10,7 +10,7 @@ if (!MONGODB_URI) {
 }
 
 /**
- * Global is used here to maintain a cached connection across hot reloads
+ * Global is used here to maintain a cached connection across hot reloadsss
  * in development. This prevents connections growing exponentially
  * during API Route usage.
  */
