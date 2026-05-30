@@ -42,6 +42,11 @@ const donationSchema = new mongoose.Schema(
     },
 
     // Payment Reference
+    razorpayOrderId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
     paymentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Payment',
@@ -88,6 +93,7 @@ const donationSchema = new mongoose.Schema(
 donationSchema.index({ donorPhone: 1 });
 donationSchema.index({ paymentStatus: 1 });
 donationSchema.index({ createdAt: -1 });
+donationSchema.index({ razorpayOrderId: 1 }, { unique: true, sparse: true });
 
 const Donation = mongoose.models.Donation || mongoose.model('Donation', donationSchema);
 

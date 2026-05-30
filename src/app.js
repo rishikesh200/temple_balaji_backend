@@ -11,6 +11,7 @@ import paymentRoutes from './routes/payment.routes.js';
 import donationRoutes from './routes/donation.routes.js';
 import poojaRoutes from './routes/pooja.routes.js';
 import darshanRoutes from './routes/darshan.routes.js';
+import uploadRoutes from './routes/upload.routes.js';
 
 // Load env vars
 dotenv.config();
@@ -78,6 +79,7 @@ app.use('/api/donations', donationRoutes);
 app.use('/api/pooja-bookings', poojaRoutes);
 
 app.use('/api/darshan-bookings', darshanRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // ==============================
 // ERROR HANDLER

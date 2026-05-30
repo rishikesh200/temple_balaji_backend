@@ -51,11 +51,11 @@ const paymentSchema = new mongoose.Schema(
     },
     customerEmail: {
       type: String,
-      required: true,
+      default: '',
     },
     customerPhone: {
       type: String,
-      required: true,
+      default: '',
     },
 
     // Refund Details
@@ -92,7 +92,9 @@ const paymentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Index for quick lookups
+// Indexes for quick lookups
+paymentSchema.index({ razorpayOrderId: 1 }, { unique: true });          // Idempotency — one Payment per Razorpay order
+paymentSchema.index({ razorpayPaymentId: 1 }, { sparse: true });         // Fast webhook lookup by payment ID
 paymentSchema.index({ customerPhone: 1 });
 paymentSchema.index({ status: 1 });
 paymentSchema.index({ paymentType: 1 });

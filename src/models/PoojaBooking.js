@@ -61,6 +61,11 @@ const poojaBookingSchema = new mongoose.Schema(
     },
 
     // Payment Reference
+    razorpayOrderId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
     paymentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Payment',
@@ -109,6 +114,7 @@ poojaBookingSchema.index({ date: 1 });
 poojaBookingSchema.index({ bookingStatus: 1 });
 poojaBookingSchema.index({ paymentStatus: 1 });
 poojaBookingSchema.index({ createdAt: -1 });
+poojaBookingSchema.index({ razorpayOrderId: 1 }, { unique: true, sparse: true });
 
 const PoojaBooking = mongoose.models.PoojaBooking || mongoose.model('PoojaBooking', poojaBookingSchema);
 
