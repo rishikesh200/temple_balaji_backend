@@ -8,19 +8,21 @@ export const getConfig = asyncHandler(async (req, res) => {
     success: true,
     templeSettings: config?.templeSettings ?? {},
     liveStream: config?.liveStream ?? { enabled: false, url: '', title: 'Live Darshan' },
+    theme: config?.theme ?? {},
   });
 });
 
 // PUT /api/config  — admin only
 export const updateConfig = asyncHandler(async (req, res) => {
-  const { templeSettings, liveStream } = req.body;
+  const { templeSettings, liveStream, theme } = req.body;
   const update = {};
   if (templeSettings !== undefined) update.templeSettings = templeSettings;
   if (liveStream     !== undefined) update.liveStream     = liveStream;
+  if (theme          !== undefined) update.theme          = theme;
   const config = await SiteConfig.findOneAndUpdate(
     { key: 'main' },
     { $set: update },
     { new: true, upsert: true, runValidators: false }
   );
-  res.json({ success: true, templeSettings: config.templeSettings, liveStream: config.liveStream });
+  res.json({ success: true, templeSettings: config.templeSettings, liveStream: config.liveStream, theme: config.theme ?? {} });
 });
