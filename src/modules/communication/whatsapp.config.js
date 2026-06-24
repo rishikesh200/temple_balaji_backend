@@ -16,8 +16,8 @@ const whatsappConfig = {
   accountId: process.env.WHATSAPP_BUSINESS_ACCOUNT_ID,
   apiToken: process.env.WHATSAPP_BUSINESS_API_TOKEN,
   phoneNumberId: process.env.WHATSAPP_BUSINESS_PHONE_NUMBER_ID,
-  apiVersion: 'v18.0', // Update to latest version as needed
-  baseUrl: 'https://graph.instagram.com',
+  apiVersion: 'v22.0',
+  baseUrl: 'https://graph.facebook.com',
 };
 
 // Validate configuration

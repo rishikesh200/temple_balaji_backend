@@ -23,8 +23,9 @@ class CommunicationService {
    */
   async sendWhatsAppMessage(phoneNumber, message) {
     try {
+      phoneNumber = this._normalizePhoneNumber(phoneNumber);
       if (!this._validatePhoneNumber(phoneNumber)) {
-        throw new Error('Invalid phone number format. Use format: 91XXXXXXXXXX');
+        throw new Error(`Invalid phone number format after normalization: ${phoneNumber}`);
       }
 
       const url = `${whatsappConfig.baseUrl}/${whatsappConfig.apiVersion}/${whatsappConfig.phoneNumberId}/messages`;
@@ -71,8 +72,9 @@ class CommunicationService {
    */
   async sendWhatsAppTemplate(phoneNumber, templateName, templateParameters = [], languageCode = 'en') {
     try {
+      phoneNumber = this._normalizePhoneNumber(phoneNumber);
       if (!this._validatePhoneNumber(phoneNumber)) {
-        throw new Error('Invalid phone number format. Use format: 91XXXXXXXXXX');
+        throw new Error(`Invalid phone number format after normalization: ${phoneNumber}`);
       }
 
       const url = `${whatsappConfig.baseUrl}/${whatsappConfig.apiVersion}/${whatsappConfig.phoneNumberId}/messages`;
@@ -231,39 +233,12 @@ class CommunicationService {
    * @returns {Promise<Object>} Send result
    */
   async sendBookingConfirmation(options) {
-    try {
-      const {
-        phoneNumber,
-        customerName,
-        bookingType,
-        bookingId,
-        amount,
-        date,
-      } = options;
-
-      const message = `🙏 Thank you for your booking!
-
-Dear ${customerName},
-
-Your ${bookingType} booking has been confirmed!
-
-📋 Booking ID: ${bookingId}
-💰 Amount: ₹${amount}
-📅 Date: ${date}
-
-We look forward to serving you. 
-For any queries, please contact us.
-
-🕉️ *Hari Om Tat Sat*`;
-
-      return await this.sendWhatsAppMessage(phoneNumber, message);
-    } catch (error) {
-      console.error('Error sending booking confirmation:', error.message);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+    const { phoneNumber, customerName, bookingType, bookingId, amount, date } = options;
+    return await this.sendWhatsAppTemplate(
+      phoneNumber,
+      'booking_confirmed',
+      [bookingType, customerName, String(bookingId), `Rs.${amount}`, date]
+    );
   }
 
   /**
@@ -277,36 +252,12 @@ For any queries, please contact us.
    * @returns {Promise<Object>} Send result
    */
   async sendPaymentConfirmation(options) {
-    try {
-      const {
-        phoneNumber,
-        customerName,
-        amount,
-        orderId,
-        transactionId,
-      } = options;
-
-      const message = `✅ Payment Received!
-
-Dear ${customerName},
-
-Your payment of ₹${amount} has been received successfully.
-
-📋 Order ID: ${orderId}
-🔑 Transaction ID: ${transactionId}
-
-Thank you for your generous contribution.
-
-🕉️ *Hari Om Tat Sat*`;
-
-      return await this.sendWhatsAppMessage(phoneNumber, message);
-    } catch (error) {
-      console.error('Error sending payment confirmation:', error.message);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+    const { phoneNumber, customerName, amount, transactionId } = options;
+    return await this.sendWhatsAppTemplate(
+      phoneNumber,
+      'payment_confirmed',
+      [customerName, `Rs.${amount}`, transactionId]
+    );
   }
 
   /**
@@ -319,34 +270,35 @@ Thank you for your generous contribution.
    * @returns {Promise<Object>} Send result
    */
   async sendReminder(options) {
-    try {
-      const {
-        phoneNumber,
-        customerName,
-        eventType,
-        eventDate,
-      } = options;
+    const { phoneNumber, customerName, eventType, eventDate } = options;
+    return await this.sendWhatsAppTemplate(
+      phoneNumber,
+      'booking_reminder',
+      [customerName, eventType, eventDate]
+    );
+  }
 
-      const message = `⏰ Gentle Reminder
+  /**
+   * Normalize Indian phone numbers to international format (91XXXXXXXXXX)
+   * Handles inputs like: 8525990442, 08525990442, +918525990442, 918525990442
+   * @param {string} phoneNumber
+   * @returns {string} Normalized number e.g. 918525990442
+   */
+  _normalizePhoneNumber(phoneNumber) {
+    // Remove all non-digit characters (spaces, dashes, +)
+    let digits = String(phoneNumber).replace(/\D/g, '');
 
-Dear ${customerName},
+    // If 10 digits — bare Indian mobile number, prepend 91
+    if (digits.length === 10) return `91${digits}`;
 
-This is a friendly reminder for your upcoming ${eventType}.
+    // If 11 digits starting with 0 — local format like 08525990442
+    if (digits.length === 11 && digits.startsWith('0')) return `91${digits.slice(1)}`;
 
-📅 Date & Time: ${eventDate}
+    // If 12 digits starting with 91 — already correct
+    if (digits.length === 12 && digits.startsWith('91')) return digits;
 
-Please ensure you arrive on time. For any changes, please contact us immediately.
-
-🕉️ *Hari Om Tat Sat*`;
-
-      return await this.sendWhatsAppMessage(phoneNumber, message);
-    } catch (error) {
-      console.error('Error sending reminder:', error.message);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+    // Return as-is for other country codes (length 11–15)
+    return digits;
   }
 
   /**
@@ -356,8 +308,6 @@ Please ensure you arrive on time. For any changes, please contact us immediately
    * @returns {boolean} True if valid format
    */
   _validatePhoneNumber(phoneNumber) {
-    // Basic validation: should be country code + 10 digits
-    // E.g., 91XXXXXXXXXX for India
     const phoneRegex = /^\d{10,15}$/;
     return phoneRegex.test(phoneNumber);
   }

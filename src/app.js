@@ -78,6 +78,53 @@ const apiLimiter = rateLimit({
 app.use('/api/', apiLimiter);
 app.use('/api/auth/login', authLimiter);
 
+// ── API Request Logger ────────────────────────────────────────
+app.use((req, res, next) => {
+  const start = Date.now();
+
+  // Color codes
+  const dim    = '\x1b[2m';
+  const reset  = '\x1b[0m';
+  const green  = '\x1b[32m';
+  const yellow = '\x1b[33m';
+  const red    = '\x1b[31m';
+  const cyan   = '\x1b[36m';
+  const blue   = '\x1b[34m';
+
+  const methodColor = {
+    GET:    green,
+    POST:   blue,
+    PUT:    yellow,
+    PATCH:  yellow,
+    DELETE: red,
+  };
+
+  res.on('finish', () => {
+    const ms     = Date.now() - start;
+    const method = req.method;
+    const status = res.statusCode;
+    const color  = methodColor[method] || reset;
+
+    const statusColor =
+      status >= 500 ? red :
+      status >= 400 ? yellow :
+      status >= 300 ? cyan :
+      green;
+
+    const time = ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`;
+
+    console.log(
+      `${dim}${new Date().toLocaleTimeString('en-IN')}${reset}  ` +
+      `${color}${method.padEnd(6)}${reset} ` +
+      `${statusColor}${status}${reset} ` +
+      `${req.originalUrl} ` +
+      `${dim}${time}${reset}`
+    );
+  });
+
+  next();
+});
+
 // ── DB connection middleware ──────────────────────────────────
 app.use(async (req, res, next) => {
   try {
@@ -92,6 +139,25 @@ app.use(async (req, res, next) => {
 // ── Health check ─────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
   res.json({ success: true, status: 'ok', env: isProd ? 'production' : 'development' });
+});
+
+// ── WhatsApp test route (REMOVE BEFORE PRODUCTION) ───────────
+app.post('/api/test-whatsapp', async (req, res) => {
+  const { to, type, templateName, params, message, languageCode } = req.body;
+
+  if (!to) return res.status(400).json({ success: false, message: '`to` phone number is required' });
+
+  const { default: CommunicationService } = await import('./modules/communication/CommunicationService.js');
+
+  let result;
+
+  if (type === 'template') {
+    result = await CommunicationService.sendWhatsAppTemplate(to, templateName, params || [], languageCode || 'en_US');
+  } else {
+    result = await CommunicationService.sendWhatsAppMessage(to, message || 'Test message from temple backend');
+  }
+
+  res.status(result.success ? 200 : 400).json(result);
 });
 
 // ── Routes ────────────────────────────────────────────────────

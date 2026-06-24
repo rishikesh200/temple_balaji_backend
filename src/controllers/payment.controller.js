@@ -73,21 +73,53 @@ async function resolveRecordByOrderId(razorpayOrderId, paymentTypeHint) {
  */
 function dispatchNotification(type, payload) {
   // ── TODO: Replace this block with queue.add(type, payload) when ready ─────
-  const sendFn =
-    type === 'payment'
-      ? CommunicationService.sendPaymentConfirmation.bind(CommunicationService)
-      : CommunicationService.sendBookingConfirmation.bind(CommunicationService);
 
-  sendFn(payload)
-    .then(() => {
-      console.log(`[WHATSAPP][SUCCESS] type=${type} phone=${payload.phoneNumber}`);
-      // Mark the record as notified
-      if (payload._modelRef && payload._docId) {
-        payload._modelRef
-          .findByIdAndUpdate(payload._docId, { whatsappNotificationSent: true })
-          .catch((err) =>
-            console.error('[WHATSAPP][FLAG_ERR]', err.message)
-          );
+  // Use templates — plain text messages are blocked by WhatsApp for
+  // outbound notifications to customers who haven't messaged you first.
+  let sendFn;
+  let templateName;
+  let templateParams;
+
+  if (type === 'payment') {
+    templateName   = 'payment_confirmed';
+    templateParams = [
+      payload.customerName,
+      `Rs.${payload.amount}`,
+      payload.transactionId,
+    ];
+  } else {
+    // booking (pooja or darshan)
+    templateName   = 'booking_confirmed';
+    templateParams = [
+      payload.bookingType,
+      payload.customerName,
+      String(payload.bookingId),
+      `Rs.${payload.amount}`,
+      payload.date,
+    ];
+  }
+
+  sendFn = CommunicationService.sendWhatsAppTemplate.bind(
+    CommunicationService,
+    payload.phoneNumber,
+    templateName,
+    templateParams
+  );
+
+  Promise.resolve().then(sendFn)
+    .then((result) => {
+      if (result && result.success) {
+        console.log(`[WHATSAPP][SUCCESS] type=${type} phone=${payload.phoneNumber} msgId=${result.messageId}`);
+        // Mark the record as notified
+        if (payload._modelRef && payload._docId) {
+          payload._modelRef
+            .findByIdAndUpdate(payload._docId, { whatsappNotificationSent: true })
+            .catch((err) =>
+              console.error('[WHATSAPP][FLAG_ERR]', err.message)
+            );
+        }
+      } else {
+        console.error(`[WHATSAPP][FAILED] type=${type} phone=${payload.phoneNumber} err=${result?.error} details=${JSON.stringify(result?.details)}`);
       }
     })
     .catch((err) => {
